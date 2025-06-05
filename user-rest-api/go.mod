@@ -1,4 +1,4 @@
-module user-rest-api
+module github.com/laki88/yaalalabs-user-api/user-rest-api
 
 go 1.24.3
 
