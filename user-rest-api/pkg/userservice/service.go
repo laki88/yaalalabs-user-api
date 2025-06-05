@@ -14,6 +14,7 @@ type UserService interface {
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	DeleteUser(ctx context.Context, userID uuid.UUID) error
 	GetUser(ctx context.Context, userID uuid.UUID) (User, error)
+	GetAllUsers(ctx context.Context) ([]User, error)
 }
 
 type service struct {
@@ -68,6 +69,19 @@ func (s *service) GetUser(ctx context.Context, userID uuid.UUID) (User, error) {
 	}
 	return toPublicUser(user), nil
 }
+
+func (s *service) GetAllUsers(ctx context.Context) ([]User, error) {
+	dbUsers, err := s.q.ListUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var users []User
+	for _, u := range dbUsers {
+		users = append(users, toPublicUser(u))
+	}
+	return users, nil
+}
+
 func toPublicUser(u db.User) User {
 	var phone *string
 	if u.Phone.Valid {
