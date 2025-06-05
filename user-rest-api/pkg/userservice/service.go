@@ -21,8 +21,7 @@ type service struct {
 }
 
 func NewService(sqlDB *sql.DB) UserService {
-	queries := db.New(sqlDB)
-	return &service{q: queries}
+	return &service{q: db.New(sqlDB)}
 }
 
 func (s *service) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
