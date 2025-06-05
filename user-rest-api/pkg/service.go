@@ -1,10 +1,10 @@
-package pkg
+package userservice
 
 import (
 	"context"
 	"github.com/google/uuid"
 
-	"user-rest-api/internal/db"
+	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/db"
 )
 
 type UserService interface {

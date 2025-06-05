@@ -2,15 +2,15 @@ package main
 
 import (
 	"database/sql"
+	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal"
+	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/db"
 	"log"
 	"net/http"
-	"user-rest-api/internal"
-	"user-rest-api/internal/db"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"user-rest-api/api"
+	"github.com/laki88/yaalalabs-user-api/user-rest-api/api"
 )
 import _ "github.com/lib/pq"
 

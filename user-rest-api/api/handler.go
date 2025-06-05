@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"user-rest-api/internal"
-	"user-rest-api/internal/db"
+	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal"
+	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/db"
 )
 
 type Handler struct {
