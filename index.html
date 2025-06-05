@@ -1,0 +1,112 @@
+<!-- user-ws/client/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>User WS Demo</title>
+  <style>
+    body { font-family: sans-serif; }
+    #log { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 8px; margin-top: 10px; }
+    #log div { margin-bottom: 5px; }
+    input, button, textarea { margin: 5px; }
+  </style>
+</head>
+<body>
+  <h2>WebSocket User Event Client</h2>
+
+  <div>
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+  </div>
+
+  <div>
+    <input id="entity" placeholder="Entity (e.g. users)" />
+    <button onclick="subscribe()">Subscribe</button>
+  </div>
+
+  <div>
+    <textarea id="payload" rows="4" cols="60" placeholder='{"type":"create","entity":"users","payload":{...}}'></textarea><br />
+    <button onclick="sendMessage()">Send Message</button>
+  </div>
+
+  <h3>Logs:</h3>
+  <div id="log"></div>
+
+  <script>
+    let socket;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+
+    function log(msg) {
+      const entry = document.createElement("div");
+      entry.textContent = msg;
+      document.getElementById("log").appendChild(entry);
+    }
+
+    function connect() {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        log("[Already Connected]");
+        return;
+      }
+      socket = new WebSocket("ws://localhost:8081/ws");
+
+      socket.onopen = () => {
+        reconnectAttempts = 0;
+        log("[Connected]");
+      };
+
+      socket.onmessage = (event) => {
+        log("[Message] " + event.data);
+      };
+
+      socket.onerror = (err) => {
+        log("[Error] WebSocket error occurred");
+      };
+
+      socket.onclose = () => {
+        log("[Disconnected]");
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          setTimeout(connect, 1000 * reconnectAttempts);
+          log(`[Reconnecting attempt ${reconnectAttempts}]`);
+        }
+      };
+    }
+
+    function disconnect() {
+      if (socket) {
+        socket.close();
+      }
+    }
+
+    function subscribe() {
+      if (!isConnected()) return;
+      const entity = document.getElementById("entity").value.trim();
+      if (!entity) return alert("Enter an entity name");
+      const msg = JSON.stringify({ type: "subscribe", entity });
+      socket.send(msg);
+      log("[Sent] " + msg);
+    }
+
+    function sendMessage() {
+      if (!isConnected()) return;
+      const msg = document.getElementById("payload").value.trim();
+      try {
+        const parsed = JSON.parse(msg);
+        socket.send(JSON.stringify(parsed));
+        log("[Sent] " + JSON.stringify(parsed));
+      } catch (e) {
+        alert("Invalid JSON payload");
+      }
+    }
+
+    function isConnected() {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        alert("WebSocket is not connected. Please connect first.");
+        return false;
+      }
+      return true;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+openapi: 3.0.3
+info:
+  title: User Management API
+  version: 1.0.0
+  description: REST API for managing users using Go, Chi, PostgreSQL, and sqlc
+
+servers:
+  - url: http://localhost:8080
+
+paths:
+  /users:
+    post:
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+    get:
+      summary: Retrieve all users
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '500':
+          description: Internal server error
+
+  /users/{id}:
+    get:
+      summary: Get user by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      responses:
+        '200':
+          description: Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+    patch:
+      summary: Update user
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+    delete:
+      summary: Delete user
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: User not found
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        age:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [Active, Inactive]
+          nullable: true
+    UserInput:
+      type: object
+      required:
+        - first_name
+        - last_name
+        - email
+      properties:
+        first_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+        last_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        age:
+          type: integer
+          minimum: 1
+          nullable: true
+        status:
+          type: string
+          enum: [Active, Inactive]
+          nullable: true
