@@ -67,6 +67,18 @@ func (c *Client) readPump() {
 		}
 
 		switch msg.Type {
+		case "subscribe":
+			c.hub.Subscribe(c, msg.Entity)
+			log.Printf("Client subscribed to %s", msg.Entity)
+			ack := map[string]string{
+				"type":   "subscribe_ack",
+				"entity": msg.Entity,
+				"status": "subscribed",
+			}
+			ackBytes, _ := json.Marshal(ack)
+			c.send <- ackBytes
+			continue
+
 		case "create":
 			var user userservice.CreateUserParams
 			if err := json.Unmarshal(msg.Payload, &user); err != nil {
@@ -80,6 +92,7 @@ func (c *Client) readPump() {
 			}
 			resp, _ := json.Marshal(createdUser)
 			c.send <- resp
+			c.hub.BroadcastToSubscribers("users", resp)
 
 		case "update":
 			var update userservice.UpdateUserParams
@@ -94,6 +107,7 @@ func (c *Client) readPump() {
 			}
 			resp, _ := json.Marshal(updatedUser)
 			c.send <- resp
+			c.hub.BroadcastToSubscribers("users", resp)
 
 		case "delete":
 			var payload struct {
@@ -108,6 +122,7 @@ func (c *Client) readPump() {
 				continue
 			}
 			c.send <- []byte(`{"status":"deleted"}`)
+			//c.hub.BroadcastToSubscribers("users", resp) // create response to send
 
 		case "get":
 			users, err := c.hub.userService.GetAllUsers(ctx)

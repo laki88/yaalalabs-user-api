@@ -10,6 +10,13 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+  nats:
+    image: nats:latest
+    container_name: nats-server
+    ports:
+      - "4222:4222"     # Client connections
+      - "8222:8222"     # HTTP monitoring port (optional)
+    restart: unless-stopped
 
 volumes:
   pgdata:
