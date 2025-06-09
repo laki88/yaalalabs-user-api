@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/nats"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -54,6 +55,8 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not create user: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	event, _ := json.Marshal(user)
+	nats.Publish("users.updated", event)
 
 	json.NewEncoder(w).Encode(user)
 }
@@ -132,6 +135,9 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not update user: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	event, _ := json.Marshal(user)
+	nats.Publish("users.updated", event)
 
 	json.NewEncoder(w).Encode(user)
 }

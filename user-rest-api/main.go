@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal"
 	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/db"
+	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/nats"
 	"log"
 	"net/http"
 
@@ -19,6 +20,11 @@ func main() {
 	conn, err := sql.Open("postgres", "postgres://user:pass@localhost:5432/userdb?sslmode=disable")
 	if err != nil {
 		log.Fatal("cannot connect to db:", err)
+	}
+
+	err = nats.InitNATS("nats://localhost:4222")
+	if err != nil {
+		log.Fatal("Failed to connect to NATS:", err)
 	}
 
 	internal.InitValidator()
