@@ -22,9 +22,15 @@ var upgrader = websocket.Upgrader{
 }
 
 type Client struct {
-	hub  *Hub
-	conn *websocket.Conn
-	send chan []byte
+	hub                *Hub
+	conn               *websocket.Conn
+	send               chan []byte
+	subscribedEntities map[string]bool
+}
+
+type BroadcastMessage struct {
+	Entity  string
+	Message []byte
 }
 
 func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
@@ -33,7 +39,12 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		log.Println("WebSocket upgrade error:", err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
+	client := &Client{
+		hub:                hub,
+		conn:               conn,
+		send:               make(chan []byte, 256),
+		subscribedEntities: make(map[string]bool),
+	}
 	hub.register <- client
 	go client.writePump()
 	go client.readPump()
@@ -68,7 +79,7 @@ func (c *Client) readPump() {
 
 		switch msg.Type {
 		case "subscribe":
-			c.hub.Subscribe(c, msg.Entity)
+			c.subscribedEntities[msg.Entity] = true
 			log.Printf("Client subscribed to %s", msg.Entity)
 			ack := map[string]string{
 				"type":   "subscribe_ack",
@@ -92,7 +103,10 @@ func (c *Client) readPump() {
 			}
 			resp, _ := json.Marshal(createdUser)
 			c.send <- resp
-			c.hub.BroadcastToSubscribers("users", resp)
+			c.hub.broadcast <- BroadcastMessage{
+				Entity:  "users",
+				Message: resp,
+			}
 
 		case "update":
 			var update userservice.UpdateUserParams
@@ -107,7 +121,10 @@ func (c *Client) readPump() {
 			}
 			resp, _ := json.Marshal(updatedUser)
 			c.send <- resp
-			c.hub.BroadcastToSubscribers("users", resp)
+			c.hub.broadcast <- BroadcastMessage{
+				Entity:  "users",
+				Message: resp,
+			}
 
 		case "delete":
 			var payload struct {
@@ -122,7 +139,10 @@ func (c *Client) readPump() {
 				continue
 			}
 			c.send <- []byte(`{"status":"deleted"}`)
-			//c.hub.BroadcastToSubscribers("users", resp) // create response to send
+			c.hub.broadcast <- BroadcastMessage{
+				Entity:  "users",
+				Message: []byte(`{"status":"deleted"}`),
+			}
 
 		case "get":
 			users, err := c.hub.userService.GetAllUsers(ctx)

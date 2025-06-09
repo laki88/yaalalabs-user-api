@@ -1,23 +1,22 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
 	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/nats"
+	"github.com/laki88/yaalalabs-user-api/user-rest-api/pkg/userservice"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal"
-	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/db"
 )
 
 type Handler struct {
-	Queries *db.Queries
+	Service userservice.UserService
 }
 
-func NewHandler(queries *db.Queries) *Handler {
-	return &Handler{Queries: queries}
+func NewHandler(service userservice.UserService) *Handler {
+	return &Handler{Service: service}
 }
 
 func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -40,55 +39,60 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert optional fields
-	arg := db.CreateUserParams{
+	// Call the service layer with decoupled types
+	user, err := h.Service.CreateUser(r.Context(), userservice.CreateUserParams{
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Email:     req.Email,
-		Phone:     internal.ToNullString(req.Phone),
-		Age:       internal.ToNullInt32(req.Age),
-		Status:    internal.ToNullString(req.Status),
-	}
+		Phone:     &req.Phone,
+		Age:       req.Age,
+		Status:    &req.Status,
+	})
 
-	user, err := h.Queries.CreateUser(r.Context(), arg)
 	if err != nil {
 		http.Error(w, "Could not create user: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Publish to NATS
 	event, _ := json.Marshal(user)
 	nats.Publish("users.updated", event)
 
-	json.NewEncoder(w).Encode(user)
+	// Respond with the created user
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		http.Error(w, "Error encoding response: "+err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
-	id, err := uuid.Parse(idStr)
+	userID, err := uuid.Parse(idStr)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
-	user, err := h.Queries.GetUser(r.Context(), id)
-	if err == sql.ErrNoRows {
+	user, err := h.Service.GetUser(r.Context(), userID)
+	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, "Failed to fetch user", http.StatusInternalServerError)
 		return
 	}
 
-	json.NewEncoder(w).Encode(user)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		http.Error(w, "Error encoding response: "+err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := h.Queries.ListUsers(r.Context())
+	users, err := h.Service.GetAllUsers(r.Context())
 	if err != nil {
 		http.Error(w, "Failed to list users", http.StatusInternalServerError)
 		return
 	}
 
-	json.NewEncoder(w).Encode(users)
+	if err := json.NewEncoder(w).Encode(users); err != nil {
+		http.Error(w, "Error encoding response: "+err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -117,21 +121,17 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	arg := db.UpdateUserParams{
+	user, err := h.Service.UpdateUser(r.Context(), userservice.UpdateUserParams{
 		UserID:    userID,
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Email:     req.Email,
-		Phone:     internal.ToNullString(req.Phone),
-		Age:       internal.ToNullInt32(req.Age),
-		Status:    internal.ToNullString(req.Status),
-	}
+		Phone:     &req.Phone,
+		Age:       req.Age,
+		Status:    &req.Status,
+	})
 
-	user, err := h.Queries.UpdateUser(r.Context(), arg)
-	if err == sql.ErrNoRows {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	} else if err != nil {
+	if err != nil {
 		http.Error(w, "Could not update user: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -139,23 +139,21 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	event, _ := json.Marshal(user)
 	nats.Publish("users.updated", event)
 
-	json.NewEncoder(w).Encode(user)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		http.Error(w, "Error encoding response: "+err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
-	id, err := uuid.Parse(idStr)
+	userID, err := uuid.Parse(idStr)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
-	err = h.Queries.DeleteUser(r.Context(), id)
-	if err == sql.ErrNoRows {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, "Failed to delete user", http.StatusInternalServerError)
+	if err := h.Service.DeleteUser(r.Context(), userID); err != nil {
+		http.Error(w, "Failed to delete user: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 

@@ -2,11 +2,11 @@ package userservice
 
 import (
 	"context"
-	"database/sql"
 	"github.com/google/uuid"
 
 	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal"
 	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/db"
+	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/repository"
 )
 
 type UserService interface {
@@ -18,11 +18,11 @@ type UserService interface {
 }
 
 type service struct {
-	q *db.Queries
+	repo repository.UserRepository
 }
 
-func NewService(sqlDB *sql.DB) UserService {
-	return &service{q: db.New(sqlDB)}
+func NewService(repo repository.UserRepository) UserService {
+	return &service{repo: repo}
 }
 
 func (s *service) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -34,7 +34,7 @@ func (s *service) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		Age:       internal.ToNullInt32(arg.Age),
 		Status:    internal.ToNullString(*arg.Status),
 	}
-	user, err := s.q.CreateUser(ctx, dbArg)
+	user, err := s.repo.CreateUser(ctx, dbArg)
 	if err != nil {
 		return User{}, err
 	}
@@ -51,7 +51,7 @@ func (s *service) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		Age:       internal.ToNullInt32(arg.Age),
 		Status:    internal.ToNullString(*arg.Status),
 	}
-	user, err := s.q.UpdateUser(ctx, dbArg)
+	user, err := s.repo.UpdateUser(ctx, dbArg)
 	if err != nil {
 		return User{}, err
 	}
@@ -59,11 +59,11 @@ func (s *service) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 }
 
 func (s *service) DeleteUser(ctx context.Context, userID uuid.UUID) error {
-	return s.q.DeleteUser(ctx, userID)
+	return s.repo.DeleteUser(ctx, userID)
 }
 
 func (s *service) GetUser(ctx context.Context, userID uuid.UUID) (User, error) {
-	user, err := s.q.GetUser(ctx, userID)
+	user, err := s.repo.GetUser(ctx, userID)
 	if err != nil {
 		return User{}, err
 	}
@@ -71,7 +71,7 @@ func (s *service) GetUser(ctx context.Context, userID uuid.UUID) (User, error) {
 }
 
 func (s *service) GetAllUsers(ctx context.Context) ([]User, error) {
-	dbUsers, err := s.q.ListUsers(ctx)
+	dbUsers, err := s.repo.ListUsers(ctx)
 	if err != nil {
 		return nil, err
 	}

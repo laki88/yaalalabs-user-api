@@ -1,0 +1,9 @@
+server:
+  port: "8081"
+
+database:
+  driver: "postgres"
+  url: "postgres://user:pass@localhost:5432/userdb?sslmode=disable"
+
+nats:
+  url: "nats://localhost:4222"

@@ -7,8 +7,8 @@ import (
 	nats "github.com/nats-io/nats.go"
 )
 
-func StartNATSListener(hub *Hub) {
-	nc, err := nats.Connect(nats.DefaultURL)
+func StartNATSListener(hub *Hub, natsURL string) {
+	nc, err := nats.Connect(natsURL)
 	if err != nil {
 		log.Println("[WARN] NATS not available, continuing without external REST updates.")
 		return
@@ -17,7 +17,10 @@ func StartNATSListener(hub *Hub) {
 
 	_, err = nc.Subscribe("users.updated", func(m *nats.Msg) {
 		log.Println("NATS message received:", string(m.Data))
-		hub.BroadcastToSubscribers("users", m.Data)
+		hub.broadcast <- BroadcastMessage{
+			Entity:  "users",
+			Message: m.Data,
+		}
 	})
 	if err != nil {
 		log.Println("[ERROR] Failed to subscribe to users.updated:", err)

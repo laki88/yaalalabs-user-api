@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	_ "github.com/lib/pq"
+	"user-ws-api/internal/config"
 
 	"github.com/laki88/yaalalabs-user-api/user-rest-api/pkg/userservice"
 	"log"
@@ -12,8 +13,8 @@ import (
 )
 
 func main() {
-	connStr := "postgres://user:pass@localhost:5432/userdb?sslmode=disable" // adjust credentials/db
-	sqlDB, err := sql.Open("postgres", connStr)
+	config.LoadConfig("config/config.yaml")
+	sqlDB, err := sql.Open(config.AppConfig.Database.Driver, config.AppConfig.Database.URL)
 	if err != nil {
 		log.Fatal("cannot connect to db:", err)
 	}
@@ -27,8 +28,8 @@ func main() {
 		ws.ServeWs(hub, w, r)
 	})
 
-	go ws.StartNATSListener(hub)
+	go ws.StartNATSListener(hub, config.AppConfig.NATS.URL)
 
-	log.Println("WebSocket server started on :8081")
-	log.Fatal(http.ListenAndServe(":8081", nil))
+	log.Println("WebSocket server started on :" + config.AppConfig.Server.Port)
+	log.Fatal(http.ListenAndServe(":"+config.AppConfig.Server.Port, nil))
 }

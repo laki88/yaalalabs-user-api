@@ -8,6 +8,7 @@ require (
 	github.com/laki88/yaalalabs-user-api/user-rest-api v0.0.0-20250605111302-b6e6b15ddbb2
 	github.com/lib/pq v1.10.9
 	github.com/nats-io/nats.go v1.43.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
