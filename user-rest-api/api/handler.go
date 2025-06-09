@@ -15,19 +15,20 @@ type Handler struct {
 	Service userservice.UserService
 }
 
+var req struct {
+	FirstName string `json:"first_name" validate:"required,min=2,max=50"`
+	LastName  string `json:"last_name" validate:"required,min=2,max=50"`
+	Email     string `json:"email" validate:"required,email"`
+	Phone     string `json:"phone"`
+	Age       *int32 `json:"age"`
+	Status    string `json:"status"`
+}
+
 func NewHandler(service userservice.UserService) *Handler {
 	return &Handler{Service: service}
 }
 
 func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		FirstName string `json:"first_name" validate:"required,min=2,max=50"`
-		LastName  string `json:"last_name" validate:"required,min=2,max=50"`
-		Email     string `json:"email" validate:"required,email"`
-		Phone     string `json:"phone"`
-		Age       *int32 `json:"age"`
-		Status    string `json:"status"`
-	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -100,15 +101,6 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Invalid UUID", http.StatusBadRequest)
 		return
-	}
-
-	var req struct {
-		FirstName string `json:"first_name" validate:"required,min=2,max=50"`
-		LastName  string `json:"last_name" validate:"required,min=2,max=50"`
-		Email     string `json:"email" validate:"required,email"`
-		Phone     string `json:"phone"`
-		Age       *int32 `json:"age"`
-		Status    string `json:"status"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
