@@ -33,7 +33,7 @@ func (s *service) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		Phone:     internal.ToNullString(*arg.Phone),
 		Age:       internal.ToNullInt32(arg.Age),
 		Status:    internal.ToNullString(*arg.Status),
-	}
+	} //todo cannot
 	user, err := s.repo.CreateUser(ctx, dbArg)
 	if err != nil {
 		return User{}, err

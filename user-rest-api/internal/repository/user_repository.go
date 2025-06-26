@@ -1,4 +1,4 @@
-// internal/repository/user_repository.go
+//go:generate mockery --name UserRepository --structname MockUserRepository --output ./mocks --case underscore
 package repository
 
 import (

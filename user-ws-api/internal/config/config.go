@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	"log/slog"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -27,10 +27,20 @@ var AppConfig Config
 func LoadConfig(path string) {
 	file, err := os.ReadFile(path)
 	if err != nil {
-		log.Fatalf("Failed to read config file: %v", err)
+		slog.Error("Failed to read config file: %v", err)
+		os.Exit(1)
 	}
 
 	if err := yaml.Unmarshal(file, &AppConfig); err != nil {
-		log.Fatalf("Failed to parse config file: %v", err)
+		slog.Error("Failed to parse config file: %v", err)
+		os.Exit(1)
+	}
+	if AppConfig.Server.Port == "" {
+		slog.Error("Server port is required")
+		os.Exit(1)
+	}
+	if AppConfig.Database.URL == "" {
+		slog.Error("Database URL is required")
+		os.Exit(1)
 	}
 }

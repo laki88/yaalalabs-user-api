@@ -15,6 +15,7 @@
   <h2>WebSocket User Event Client</h2>
 
   <div>
+    <input id="userId" placeholder="User ID" />
     <button onclick="connect()">Connect</button>
     <button onclick="disconnect()">Disconnect</button>
   </div>
@@ -48,11 +49,19 @@
         log("[Already Connected]");
         return;
       }
-      socket = new WebSocket("ws://localhost:8081/ws");
+
+      const userId = document.getElementById("userId").value.trim();
+      if (!userId) {
+        alert("Please enter a User ID before connecting.");
+        return;
+      }
+
+      const wsUrl = `ws://localhost:8081/ws?user_id=${encodeURIComponent(userId)}`;
+      socket = new WebSocket(wsUrl);
 
       socket.onopen = () => {
         reconnectAttempts = 0;
-        log("[Connected]");
+        log(`[Connected as user_id=${userId}]`);
       };
 
       socket.onmessage = (event) => {

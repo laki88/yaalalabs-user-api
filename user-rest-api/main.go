@@ -6,7 +6,6 @@ import (
 	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/config"
 	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/db"
 	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/nats"
-	"github.com/laki88/yaalalabs-user-api/user-rest-api/internal/repository"
 	"github.com/laki88/yaalalabs-user-api/user-rest-api/pkg/userservice"
 	"log"
 	"net/http"
@@ -27,15 +26,15 @@ func main() {
 	}
 
 	err = nats.InitNATS(config.AppConfig.NATS.URL)
-	if err != nil {
-		log.Fatal("Failed to connect to NATS:", err)
+	if err != nil { //todo use slog
+		log.Printf("Warning: NATS connection failed: %v (continuing without pub/sub)\n", err)
 	}
 
 	internal.InitValidator()
 
 	queries := db.New(conn)
-	repo := repository.NewPostgresUserRepository(queries)
-	userService := userservice.NewService(repo)
+	//repo := repository.NewPostgresUserRepository(queries)
+	userService := userservice.NewService(queries)
 	handler := api.NewHandler(userService)
 
 	r := chi.NewRouter()
