@@ -6,8 +6,8 @@ import (
 	_ "github.com/lib/pq"
 	"log/slog"
 	"os"
+	"user-ws-api/config"
 	"user-ws-api/engine"
-	"user-ws-api/internal/config"
 	"user-ws-api/matcher"
 	"user-ws-api/models"
 
@@ -18,13 +18,13 @@ import (
 )
 
 func main() {
-	// Setup structured logger
+
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
 	slog.Info("Loading config", "path", "config/config.yaml")
 	config.LoadConfig("config/config.yaml")
-	
+
 	slog.Info("Connecting to database", "driver", config.AppConfig.Database.Driver)
 	sqlDB, err := sql.Open(config.AppConfig.Database.Driver, config.AppConfig.Database.URL)
 	if err != nil {
@@ -40,7 +40,7 @@ func main() {
 
 	hub := ws.NewHub(userService, orderRouter)
 	hub.SetTradeChannel(tradeCh)
-	go hub.Run() // todo refactor this to startHub and move these to there
+	go hub.Run()
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		ws.ServeWs(hub, w, r)
@@ -62,7 +62,10 @@ func waitForShutdown() {
 	fmt.Println("Type 'shutdown' and press Enter to stop the system.")
 	var input string
 	for {
-		fmt.Scanln(&input)
+		_, err := fmt.Scanln(&input)
+		if err != nil {
+			slog.Error("Cannot read user input", "error", err)
+		}
 		if input == "shutdown" {
 			fmt.Println("Shutdown triggered. Exiting simulation...")
 			return

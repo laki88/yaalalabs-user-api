@@ -1,40 +1,54 @@
 package engine
 
 import (
-	"sync"
-	"user-ws-api/interfaces"
+	"log/slog"
+	"user-ws-api/matcher"
 	"user-ws-api/models"
 )
 
 type OrderRouter struct {
-	books   map[string]interfaces.OrderSubmitter
-	bookMu  sync.RWMutex
-	matcher Matcher
-	tradeCh chan models.Trade
+	matcher    matcher.Matcher
+	tradeCh    chan models.Trade
+	submitCh   chan models.Order
+	assets     map[string]*Asset
+	getAssetCh chan getAssetRequest
 }
 
-func NewOrderRouter(m Matcher, tradeCh chan models.Trade) *OrderRouter {
-	return &OrderRouter{
-		books:   make(map[string]interfaces.OrderSubmitter),
-		matcher: m,
-		tradeCh: tradeCh,
+type getAssetRequest struct {
+	assetID string
+	respCh  chan *Asset
+}
+
+func NewOrderRouter(m matcher.Matcher, tradeCh chan models.Trade) *OrderRouter {
+	r := &OrderRouter{
+		matcher:    m,
+		tradeCh:    tradeCh,
+		submitCh:   make(chan models.Order, 100),
+		assets:     make(map[string]*Asset),
+		getAssetCh: make(chan getAssetRequest),
+	}
+	go r.run()
+	return r
+}
+
+func (r *OrderRouter) run() {
+	for {
+		select {
+		case order := <-r.submitCh:
+			asset, ok := r.assets[order.AssetID]
+			if !ok {
+				asset = NewAsset(order.AssetID, r.matcher, r.tradeCh)
+				r.assets[order.AssetID] = asset
+			}
+			slog.Debug("OrderRouter.run", "order", order)
+			asset.Submit(order)
+
+		case req := <-r.getAssetCh:
+			req.respCh <- r.assets[req.assetID]
+		}
 	}
 }
 
 func (r *OrderRouter) Submit(order models.Order) {
-	r.bookMu.RLock()
-	book, exists := r.books[order.AssetID]
-	r.bookMu.RUnlock()
-
-	if !exists {
-		r.bookMu.Lock()
-		book, exists = r.books[order.AssetID]
-		if !exists {
-			book = NewBook(order.AssetID, r.matcher, r.tradeCh)
-			r.books[order.AssetID] = book
-		}
-		r.bookMu.Unlock()
-	}
-
-	go book.Submit(order)
+	r.submitCh <- order
 }

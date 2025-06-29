@@ -17,10 +17,11 @@ type CreateOrderHandler struct {
 func (h *CreateOrderHandler) HandleMessage(c *Client, ctx context.Context, msg WSMessage) {
 	var order models.Order
 	if err := json.Unmarshal(msg.Payload, &order); err != nil {
-		slog.Error("Invalid order payload:", err)
+		slog.Error("Invalid order payload:", "Error", err)
 		errMsg := map[string]string{"error": "Invalid order payload"}
 		c.send <- common.MakeWSResponse("error", "orders", "create", errMsg)
 		return
 	}
+	slog.Info("CreateOrderHandler.HandleMessage", "order", order)
 	h.router.Submit(order)
 }

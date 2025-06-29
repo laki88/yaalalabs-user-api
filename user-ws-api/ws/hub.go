@@ -22,7 +22,8 @@ type Hub struct {
 	userService userservice.UserService
 	router      interfaces.OrderSubmitter
 	// handlers registry: entity -> type -> handler
-	handlers map[string]map[string]MessageHandler
+	handlers  map[string]map[string]MessageHandler
+	sendTrade chan models.Trade
 }
 
 func NewHub(userService userservice.UserService, router interfaces.OrderSubmitter) *Hub {
@@ -34,17 +35,16 @@ func NewHub(userService userservice.UserService, router interfaces.OrderSubmitte
 
 		userService: userService,
 		router:      router,
+		sendTrade:   make(chan models.Trade),
 	}
-
 	h.registerHandlers()
-
 	return h
 }
 
 func (h *Hub) SetTradeChannel(tradeCh <-chan models.Trade) {
 	go func() {
 		for trade := range tradeCh {
-			h.SendTradeToUsers(trade)
+			h.sendTrade <- trade
 		}
 	}()
 }
@@ -61,22 +61,6 @@ func (h *Hub) registerHandlers() {
 		"orders": {
 			"order": &CreateOrderHandler{router: h.router},
 		},
-	}
-}
-
-func (h *Hub) SendTradeToUsers(trade models.Trade) {
-	payload, _ := json.Marshal(trade)
-	msg := WSMessage{
-		Type:    "trade",
-		Entity:  "orders",
-		Payload: payload,
-	}
-	data, _ := json.Marshal(msg)
-
-	for client := range h.clients {
-		if client.userID == trade.BuyerID || client.userID == trade.SellerID {
-			client.send <- data
-		}
 	}
 }
 
@@ -99,6 +83,19 @@ func (h *Hub) Run() {
 						close(client.send)
 						delete(h.clients, client)
 					}
+				}
+			}
+		case trade := <-h.sendTrade:
+			for client := range h.clients {
+				if client.userID == trade.BuyerID || client.userID == trade.SellerID {
+					payload, _ := json.Marshal(trade)
+					msg := WSMessage{
+						Type:    "trade",
+						Entity:  "orders",
+						Payload: payload,
+					}
+					data, _ := json.Marshal(msg)
+					client.send <- data
 				}
 			}
 		}

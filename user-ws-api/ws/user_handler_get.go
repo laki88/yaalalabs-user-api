@@ -15,7 +15,7 @@ type GetUsersHandler struct {
 func (h *GetUsersHandler) HandleMessage(c *Client, ctx context.Context, msg WSMessage) {
 	users, err := h.service.GetAllUsers(ctx)
 	if err != nil {
-		slog.Error("GetAllUsers error:", err)
+		slog.Error("GetAllUsers error:", "Error", err)
 		errMsg := map[string]string{"error": err.Error()}
 		c.send <- common.MakeWSResponse("error", "users", "get", errMsg)
 		return

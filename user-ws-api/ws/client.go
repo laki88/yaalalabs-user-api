@@ -37,7 +37,7 @@ type BroadcastMessage struct {
 func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		slog.Error("WebSocket upgrade error:", err)
+		slog.Error("WebSocket upgrade error:", "Error", err)
 		return
 	}
 	userID := r.URL.Query().Get("user_id")
@@ -76,7 +76,7 @@ func (c *Client) readPump() {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				slog.Error("read error:", err)
+				slog.Error("read error:", "Error", err)
 			}
 			break
 		}
@@ -88,7 +88,7 @@ func (c *Client) readPump() {
 
 		var msg WSMessage
 		if err := json.Unmarshal(message, &msg); err != nil {
-			slog.Error("Invalid JSON:", err)
+			slog.Error("Invalid JSON:", "Error", err)
 			continue
 		}
 
@@ -116,13 +116,13 @@ func (c *Client) readPump() {
 }
 
 func handleErrorMessage(cancel context.CancelFunc, errorMessage string, msg WSMessage, c *Client) {
-	slog.Error(errorMessage, msg.Entity)
+	slog.Error(errorMessage, "Entity", msg.Entity)
 	c.send <- common.MakeWSResponse("error", msg.Entity, msg.Type, map[string]string{"error": "Unsupported entity"})
 	cancel()
 }
 
 func (c *Client) writePump() {
-	ticker := time.NewTicker(30 * time.Second) // Ping timeout
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	for {

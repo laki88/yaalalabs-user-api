@@ -15,14 +15,14 @@ type UpdateUserHandler struct {
 func (h *UpdateUserHandler) HandleMessage(c *Client, ctx context.Context, msg WSMessage) {
 	var user userservice.UpdateUserParams
 	if err := json.Unmarshal(msg.Payload, &user); err != nil {
-		slog.Error("Invalid update payload:", err)
+		slog.Error("Invalid update payload:", "Error", err)
 		errMsg := map[string]string{"error": "Invalid update payload"}
 		c.send <- common.MakeWSResponse("error", "users", "update", errMsg)
 		return
 	}
 	updated, err := h.service.UpdateUser(ctx, user)
 	if err != nil {
-		slog.Error("Update error:", err)
+		slog.Error("Update error:", "Error", err)
 		errMsg := map[string]string{"error": err.Error()}
 		c.send <- common.MakeWSResponse("error", "users", "update", errMsg)
 		return

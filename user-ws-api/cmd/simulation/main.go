@@ -67,21 +67,21 @@ func main() {
 
 	base := orders[0].CreatedAt
 	start := time.Now()
-	for _, o := range orders {
-		delay := time.Until(start.Add(o.CreatedAt.Sub(base)))
+	for _, order := range orders {
+		delay := time.Until(start.Add(order.CreatedAt.Sub(base)))
 		if delay > 0 {
 			time.Sleep(delay)
 		}
 		msg := WSMessage{
 			Type:    "order",
 			Entity:  "orders",
-			Payload: o,
+			Payload: order,
 		}
 		data, _ := json.Marshal(msg)
-		conn := conns[o.UserID]
-		slog.Info("Sending order: ", "User Id", o.UserID, "Id", o.ID, "At time", time.Now().Format(time.RFC3339Nano))
+		conn := conns[order.UserID]
+		slog.Info("Sending order: ", "User Id", order.UserID, "Id", order.ID, "At time", time.Now().Format(time.RFC3339Nano))
 		if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
-			slog.Error("Failed to send order: ", "UserId", o.UserID, "Error", err)
+			slog.Error("Failed to send order: ", "UserId", order.UserID, "Error", err)
 		}
 	}
 
@@ -103,7 +103,7 @@ func loadOrdersFromCSV(path string) ([]models.Order, error) {
 	defer func(file *os.File) {
 		err := file.Close()
 		if err != nil {
-			//todo what if error happened
+			slog.Error("Error occurred while closing CSV file", "Error", err)
 		}
 	}(file)
 

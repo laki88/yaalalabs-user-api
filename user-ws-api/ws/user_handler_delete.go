@@ -18,13 +18,13 @@ func (h *DeleteUserHandler) HandleMessage(c *Client, ctx context.Context, msg WS
 		UserID uuid.UUID `json:"user_id"`
 	}
 	if err := json.Unmarshal(msg.Payload, &payload); err != nil {
-		slog.Error("Invalid delete payload:", err)
+		slog.Error("Invalid delete payload:", "Error", err)
 		errMsg := map[string]string{"error": "Invalid user payload"}
 		c.send <- common.MakeWSResponse("error", "users", "delete", errMsg)
 		return
 	}
 	if err := h.service.DeleteUser(ctx, payload.UserID); err != nil {
-		slog.Error("Delete error:", err)
+		slog.Error("Delete error:", "Error", err)
 		errMsg := map[string]string{"error": err.Error()}
 		c.send <- common.MakeWSResponse("error", "users", "delete", errMsg)
 		return

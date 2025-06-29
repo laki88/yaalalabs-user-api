@@ -16,13 +16,13 @@ func StartNATSListener(hub *Hub, natsURL string) {
 	slog.Info("[INFO] Connected to NATS for external REST updates")
 
 	_, err = nc.Subscribe("users.updated", func(m *nats.Msg) {
-		slog.Info("NATS message received:", string(m.Data))
+		slog.Info("NATS message received:", "Message", string(m.Data))
 		hub.broadcast <- BroadcastMessage{
 			Entity:  "users",
 			Message: m.Data,
 		}
 	})
 	if err != nil {
-		slog.Error("[ERROR] Failed to subscribe to users.updated:", err)
+		slog.Error("[ERROR] Failed to subscribe to users.updated:", "Error", err)
 	}
 }
